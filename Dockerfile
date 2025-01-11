@@ -11,8 +11,8 @@ RUN npm install
 # Copy the source code
 COPY . .
 
-# Build the Next.js application
-RUN npm run build
+# Build the Next.js application and export static files
+RUN npm run build && npx next export
 
 # Stage 2: Serve the application with Nginx
 FROM nginx:stable-alpine
@@ -20,7 +20,10 @@ FROM nginx:stable-alpine
 # Set the working directory
 WORKDIR /usr/share/nginx/html
 
-# Copy custom Nginx configuration
+# Copy the exported static files from the build stage
+COPY --from=build /app/out .
+
+# Custom Nginx configuration
 RUN echo 'worker_processes 1; \
 events { worker_connections 1024; } \
 http { \
@@ -46,12 +49,8 @@ http { \
     } \
 }' > /etc/nginx/nginx.conf
 
-# Copy Next.js build artifacts to Nginx
-COPY --from=build /app/.next /usr/share/nginx/html/_next
-COPY --from=build /app/public /usr/share/nginx/html
-
 # Expose port 80
 EXPOSE 80
 
-# Start the Nginx server
+# Start Nginx server
 CMD ["nginx", "-g", "daemon off;"]
