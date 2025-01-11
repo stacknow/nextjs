@@ -5,12 +5,7 @@ FROM node:18-alpine AS build
 WORKDIR /app
 
 # Install necessary packages
-RUN apk add --no-cache libc6-compat
-
-# Copy package.json and package-lock.json
 COPY package.json package-lock.json ./
-
-# Install dependencies
 RUN npm install
 
 # Copy the rest of the application source code
@@ -22,7 +17,7 @@ RUN npm run build
 # Stage 2: Serve the application with Nginx
 FROM nginx:stable-alpine
 
-# Set the working directory for the Nginx container
+# Set the working directory
 WORKDIR /usr/share/nginx/html
 
 # Copy custom Nginx configuration
@@ -45,10 +40,13 @@ http { \
         location /_next/ { \
             root /usr/share/nginx/html; \
         } \
+        location /static/ { \
+            root /usr/share/nginx/html; \
+        } \
     } \
 }' > /etc/nginx/nginx.conf
 
-# Copy the Next.js built application from the previous stage
+# Copy build output from the build stage
 COPY --from=build /app/.next /usr/share/nginx/html/_next
 COPY --from=build /app/public /usr/share/nginx/html
 
